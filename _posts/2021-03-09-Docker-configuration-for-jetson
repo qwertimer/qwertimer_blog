@@ -1,0 +1,4 @@
+https://www.stereolabs.com/docs/docker/building-arm-container-on-x86/
+
+
+We need to install and configure qemu to run docker containers with our main machines. See post above 
