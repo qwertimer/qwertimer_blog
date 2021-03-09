@@ -34,7 +34,7 @@ github_username: qwertimer
 #
 # 3. You must replace the parameter `baseurl` in _action_files/settings.ini with the same value as you set here but WITHOUT QUOTES.
 #
-baseurl: "qwertimer.github.io" # the subpath of your site, e.g. "/blog".
+baseurl: "qwertimer_blog" # the subpath of your site, e.g. "/blog".
 
 # Github and twitter are optional:
 minima:
