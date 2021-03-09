@@ -2,6 +2,6 @@
 toc: true
 layout: post
 description: Fun things to do in linux
-categories: [markdown]
+categories: [Linux]
 title: Fun with Linux - Part 2
 ---

@@ -2,6 +2,6 @@
 toc: true
 layout: post
 description: How to Move around in Vim - Advanced movements
-categories: [markdown]
+categories: [Vim]
 title: How to Move around in Vim - Advanced
 ---

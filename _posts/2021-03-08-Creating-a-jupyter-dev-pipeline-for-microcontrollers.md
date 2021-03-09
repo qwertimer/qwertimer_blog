@@ -2,7 +2,7 @@
 toc: true
 layout: post
 description: Configuring a Development Environment for microcontrollers in Jupyter
-categories: [markdown]
+categories: [Jupyter, Microcontrollers, Micropython, CircuitPython]
 title: Micropython in Jupyter Notebooks
 ---
 

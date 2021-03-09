@@ -1,5 +1,7 @@
-yout: post
+---
+toc: true
+layout: post
 description: Docker basics
-categories: [markdown]
+categories: [Docker]
 title: Getting Started in Docker
 ---

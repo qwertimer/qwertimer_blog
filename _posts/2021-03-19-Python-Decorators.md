@@ -2,6 +2,6 @@
 toc: true
 layout: post
 description: Working with Python Decorators 
-categories: [markdown]
+categories: [Python, Decorators]
 title: Working with Python Decorators
 ---

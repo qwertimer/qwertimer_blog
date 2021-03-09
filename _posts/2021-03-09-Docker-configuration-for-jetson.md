@@ -2,7 +2,7 @@
 toc: true
 layout: post
 description: Docker setup for working with different cpu architectures
-categories: [markdown]
+categories: [Docker, Jetson, QEMU]
 title: Docker cross compiling on x86 for ARM
 ---
 
