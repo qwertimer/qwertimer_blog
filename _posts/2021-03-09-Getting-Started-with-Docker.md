@@ -1,9 +1,11 @@
 ---
 toc: true
 [layout](layout): post
-description: Docker basics categories: [Docker] title: Getting Started in
-Docker 
+description: Docker basics 
+categories: [Docker] 
+title: Getting Started in Docker 
 ---
+
 # Getting Started with Docker
 
 ## Introduction
@@ -67,4 +69,197 @@ docker run --rm -p 10000:5000 -e JUPYTER_ENABLE_LAB=yes -v "$PWD":/home/jovyan/w
 The command above points the host folder found in /home/<my_python_folder> to the destination or docker container location ~/<python_folder>. Thus allowing us to save any of our python scripts in a persistant and accessible folder for later. Docker also allows us to create volumes external to docker and point to these in the container thus seperating host and client files.
 
 ## Building your own containers
+
+There comes a time when you want to add certain features to your container that is not inbuilt in the image for example you may want to implement some machine learning and your python container only contains the main python libraries. You don't want to run pip install torch everytime you want to do anything. To overcome this we can build a dockerfile. This is basically a recipe for building a docker image. Below is an example docker image to implement machine learning using pytorch.
+
+
+```
+## Taken from https://github.com/anibali/docker-pytorch  ::: Many other images around with similar setups
+FROM nvidia/cuda:11.0-base-ubuntu20.04
+
+# Install some basic utilities
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    sudo \
+    git \
+    bzip2 \
+    libx11-6 \
+ && rm -rf /var/lib/apt/lists/*
+
+# Create a working directory
+RUN mkdir /app
+WORKDIR /app
+
+# Create a non-root user and switch to it
+RUN adduser --disabled-password --gecos '' --shell /bin/bash user \
+ && chown -R user:user /app
+RUN echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user
+USER user
+
+# All users can use /home/user as their home directory
+ENV HOME=/home/user
+RUN chmod 777 /home/user
+
+# Install Miniconda and Python 3.8
+ENV CONDA_AUTO_UPDATE_CONDA=false
+ENV PATH=/home/user/miniconda/bin:$PATH
+RUN curl -sLo ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh \
+ && chmod +x ~/miniconda.sh \
+ && ~/miniconda.sh -b -p ~/miniconda \
+ && rm ~/miniconda.sh \
+ && conda install -y python==3.8.3 \
+ && conda clean -ya
+
+# CUDA 11.0-specific steps
+RUN conda install -y -c pytorch \
+    cudatoolkit=11.0.221 \
+    "pytorch=1.7.0=py3.8_cuda11.0.221_cudnn8.0.3_0" \
+    "torchvision=0.8.1=py38_cu110" \
+ && conda clean -ya
+
+# Set the default command to python3
+CMD ["python3"]
+```
+
+Much of the code can be read as standard linux commands with an added docker recipe command. We can run through the dockerfile step by step to further flesh out the commands. If you wish to skip over this section jump to ###HYPERLINK TO END###.
+
+The first command is 
+```
+FROM nvidia/cuda:11.0-base-ubuntu20.04
+```
+This is pointing the docker image to a base image which in itself is a compiled docker image from another source. It is possible to run a bare minimum docker image calling `FROM scratch` which will have nothing installed and you add everything you need to the image. We often want the functionality of a previously designed base for certain reasons in this case we are pulling from nvidias cuda build saving us the time of installation of CUDA in our own container.
+
+Each docker command creates a layer allowing you to roll back or change setup without having to redownload from the start. 
+
+The next steps are to install basic utilities and create and move into a working directory.
+
+```
+#install some basic utilities
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    sudo \
+    git \
+    bzip2 \
+    libx11-6 \
+ && rm -rf /var/lib/apt/lists/*
+
+# Create a working directory
+RUN mkdir /app
+WORKDIR /app
+```
+
+The command RUN tells the docker container to run a linux command and WORKDIR sets the current folder.
+
+We then can add and modify users using 
+
+```
+# Create a non-root user and switch to it
+RUN adduser --disabled-password --gecos '' --shell /bin/bash user \
+ && chown -R user:user /app
+RUN echo "user ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-user
+USER user
+```
+
+We can begin to see that the commands are exactly like you would do in setting up your own install on  a machine. The next steps create the home directory, add environment variables and install Miniconda with a python environment.
+
+```
+#All users can use /home/user as their home directory
+ENV HOME=/home/user
+RUN chmod 777 /home/user
+
+# Install Miniconda and Python 3.8
+ENV CONDA_AUTO_UPDATE_CONDA=false
+ENV PATH=/home/user/miniconda/bin:$PATH
+RUN curl -sLo ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py38_4.8.3-Linux-x86_64.sh \
+ && chmod +x ~/miniconda.sh \
+ && ~/miniconda.sh -b -p ~/miniconda \
+ && rm ~/miniconda.sh \
+ && conda install -y python==3.8.3 \
+ && conda clean -ya
+```
+
+We can string commands together with the && command create a single layer following a set install stage. It is of note that if these become to large if for what ever reason the installation fails it will fall back to the previous known layer. For example if the miniconda installation fails the system will revert to the layer where the environment variables are set.
+
+Finally the dockerfile installs torch and additional utilies before cleaning up with:
+```
+# CUDA 11.0-specific steps
+RUN conda install -y -c pytorch \
+    cudatoolkit=11.0.221 \
+    "pytorch=1.7.0=py3.8_cuda11.0.221_cudnn8.0.3_0" \
+    "torchvision=0.8.1=py38_cu110" \
+ && conda clean -ya
+```
+
+The last command in a dockerfile is usually CMD to execute a program at each docker run command. In this situation we have 
+```
+CMD ["python3"]
+```
+
+
+## Going further
+
+But wait if we are installing all these packages how did we get access to a jupyter notebook. We can setup a nice jupyter lab environment with the below code. This can be placed as the last block in your dockerfile to start the Jupyter lab.
+
+
+```
+RUN curl -sL https://deb.nodesource.com/setup_10.x | bash - && \
+    apt-get update && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get clean && \
+    pip3 install jupyter jupyterlab==2.2.9 --verbose && \
+    jupyter labextension install @jupyter-widgets/jupyterlab-manager
+    
+RUN jupyter lab --generate-config
+RUN python3 -c "from notebook.auth.security import set_password; set_password('', '/root/.jupyter/jupyter_notebook_config.json')"
+
+CMD /bin/bash -c "jupyter lab --ip 0.0.0.0 --port 8888 --allow-root &> /var/log/jupyter.log" & \
+	echo "allow 10 sec for JupyterLab to start @ http://$(hostname -I | cut -d' ' -f1):8888 (password nvidia)" && \
+	echo "JupterLab logging location:  /var/log/jupyter.log  (inside the container)" && \
+	/bin/bash
+```
+
+## Outside of Software Development
+
+There are many other things we can do with docker containers outside of software development. Below are a couple of examples of things we can do in a docker container. 
+
+- https://hub.docker.com/r/linuxserver/plex  -- A plex server
+- https://hub.docker.com/r/linuxserver/heimdall -- Web Application /Docker image server
+- https://hub.docker.com/r/pihole/pihole -- A Network wide ad blocker
+- https://hub.docker.com/r/linuxserver/lychee -- Photo management tool
+- https://hub.docker.com/r/linuxserver/nextcloud -- file storage similar to google drive.
+- https://hub.docker.com/r/linuxserver/pylon -- IDE built with node.js (strictly software development but a web based containerised development environment.
+- https://hub.docker.com/r/rancher/rancher -- Container management platform
+- https://awesomeopensource.com/project/gcgarner/IOTstack -- Full IOT stack
+
+
+## Getting in and out of containers, and shutting down a docker service
+
+### Entering
+
+We often wish to run docker as a service and only access the environment when we need to. We can jump into a currently running docker image with the docker exec command:
+```
+docker exec -t CONTAINER bash
+```
+CONTAINER is a currently running image.
+
+### Exiting
+
+We can exit out of docker containers without terminating them by using the `-d` flag during initialisation to put the container in a detached mode.
+
+### Shutdown
+ We can shutdown a container using the kill command, gracefully shutting down the service
+ 
+ ```
+ docker kill --signal=SIGTERM <containerId>
+ ```
+ 
+
+## Final Notes
+
+Docker has many potential applications and features and we have barely scratched the surface of its full potential. We can see from this short overview that the container design makes for an excellent development environment with both interactive and non interactive setups.
+
+
 
