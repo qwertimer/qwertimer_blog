@@ -1,6 +1,6 @@
 ---
 toc: true
-[layout](layout): post
+layout: post
 description: Docker basics 
 categories: [Docker] 
 title: Getting Started in Docker 
